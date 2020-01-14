@@ -4,7 +4,7 @@ Crawler for self-learning
 實作例題
 
 如selenium及XPath試用
-‵‵‵
+```python
 from selenium import webdriver
 import time
 from bs4 import BeautifulSoup
@@ -30,4 +30,4 @@ for ele in soup.select('.Price_mainPriceContainer__1dqsw'):
     print(ele.text)
     
 driver.close()
-‵‵‵
+```
