@@ -1,0 +1,65 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+ 
+url = 'https://histock.tw/stock/public.aspx'
+response = requests.get(url)
+ 
+soup = BeautifulSoup(response.text, "html.parser")
+ 
+table = soup.find('table')
+columns = [th.text for th in table.find('tr').find_all('th')]
+ 
+trs = table.find_all('tr')[1:]
+rows = list()
+for tr in trs:
+    rows.append([td.text.replace('\xa0','').strip() for td in tr.find_all('td')])
+ 
+df = pd.DataFrame(data=rows, columns=columns)
+ 
+ 
+df["獲利"] = df["獲利"].apply(lambda x:x.replace(",",""))
+df[["中籤率(%)","報酬率(%)","獲利"]] = df[["中籤率(%)","報酬率(%)","獲利"]].astype(float)
+df_sort = df[(df['備註']=="申購中") & (df['獲利']>2000) &(df['報酬率(%)']>15)].sort_values(by="中籤率(%)", ascending=False)
+ 
+ 
+if df_sort[df_sort["中籤率(%)"]>1 &].any().sum():
+    from smtplib import SMTP
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    from pretty_html_table import build_table
+ 
+ 
+    def send_mail(df):
+ 
+        html = """\
+        <html>
+        <head></head>
+        <body>
+            {0}
+        </body>
+        </html>
+        """.format(df.to_html())
+        
+        message = MIMEMultipart()
+        message['Subject'] = '趕快申購股票！'
+        message['From'] = 'from email'
+        message['To'] = 'to email a, to email b'
+        part1 = MIMEText(html, 'html')
+        message.attach(part1)
+ 
+ 
+ 
+        server = SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(message['From'], '')
+        server.sendmail(message['From'], message['To'], message.as_string())
+        server.quit()
+ 
+    def send_country_list():    
+        send_mail(df_sort)
+        return "Mail sent successfully."
+ 
+ 
+    send_country_list()
+
